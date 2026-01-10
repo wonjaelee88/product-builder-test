@@ -12,6 +12,7 @@
             --accent-dark: #0b5047;
             --text: #1c1c1c;
             --muted: #5c5c5c;
+            --button-text: #ffffff;
         }
 
         * {
@@ -28,6 +29,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        body.dark {
+            --bg: #0f1414;
+            --card: #1a2322;
+            --accent: #f4b642;
+            --accent-dark: #f0a018;
+            --text: #f4f2ee;
+            --muted: #b5b1a8;
+            --button-text: #1a1406;
+            background: radial-gradient(circle at top right, #202624 0%, #0f1414 60%, #0b0e0e 100%);
         }
 
         .container {
@@ -67,7 +79,7 @@
             padding: 0.9rem 1.8rem;
             font-size: 1rem;
             font-weight: 600;
-            color: #fff;
+            color: var(--button-text);
             background: linear-gradient(120deg, var(--accent), #13a88f);
             box-shadow: 0 10px 18px rgba(15, 107, 95, 0.3);
             cursor: pointer;
@@ -77,6 +89,22 @@
         .cta:hover {
             transform: translateY(-2px);
             box-shadow: 0 14px 20px rgba(15, 107, 95, 0.35);
+        }
+
+        .toggle {
+            border: 1px solid rgba(15, 107, 95, 0.3);
+            background: transparent;
+            color: var(--accent-dark);
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .toggle:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .results {
@@ -110,7 +138,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: #fff;
+            background: var(--card);
             border: 2px solid var(--accent);
             display: grid;
             place-items: center;
@@ -123,6 +151,13 @@
             color: var(--muted);
             font-size: 0.95rem;
         }
+
+        @media (max-width: 680px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
@@ -132,7 +167,10 @@
                 <h1>Lottery Number Recommender</h1>
                 <p class="subtitle">Tap the button to get five fresh sets of suggested numbers.</p>
             </div>
-            <button class="cta" id="generate">Recommend Numbers</button>
+            <div>
+                <button class="toggle" id="theme-toggle">Dark mode</button>
+                <button class="cta" id="generate">Recommend Numbers</button>
+            </div>
         </header>
         <section id="results" class="results"></section>
         <p class="hint">Numbers are randomly suggested and do not guarantee any outcome.</p>
@@ -178,6 +216,10 @@
         };
 
         document.getElementById('generate').addEventListener('click', renderSets);
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark');
+            document.getElementById('theme-toggle').textContent = isDark ? 'Light mode' : 'Dark mode';
+        });
         renderSets();
     </script>
 </body>
