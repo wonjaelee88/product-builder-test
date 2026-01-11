@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lottery Number Recommender</title>
+    <title>Dinner Menu Recommender</title>
     <style>
         :root {
             --bg: #f7f3ea;
@@ -129,21 +129,57 @@
         }
 
         .numbers {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            display: grid;
+            gap: 0.75rem;
         }
 
-        .ball {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--card);
-            border: 2px solid var(--accent);
+        .menu-image-wrap {
+            width: 100%;
+            height: 180px;
+            border-radius: 12px;
+            border: 1px solid rgba(15, 107, 95, 0.15);
+            overflow: hidden;
+            position: relative;
+            background: linear-gradient(120deg, rgba(15, 107, 95, 0.08), rgba(15, 107, 95, 0.02));
+        }
+
+        .menu-image-wrap::after {
+            content: attr(data-status);
+            position: absolute;
+            inset: 0;
             display: grid;
             place-items: center;
+            font-weight: 600;
+            color: var(--muted);
+            background: transparent;
+            transition: opacity 0.2s ease;
+        }
+
+        .menu-image-wrap.is-loaded::after {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .menu-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        body.dark .menu-image-wrap {
+            border-color: rgba(244, 182, 66, 0.2);
+            background: linear-gradient(120deg, rgba(244, 182, 66, 0.08), rgba(244, 182, 66, 0.02));
+        }
+
+        .menu-image-wrap.is-error::after {
+            opacity: 0;
+        }
+
+        .menu-title {
             font-weight: 700;
             color: var(--accent-dark);
+            font-size: 1.05rem;
         }
 
         .hint {
@@ -241,16 +277,16 @@
     <div class="container">
         <header>
             <div>
-                <h1>Lottery Number Recommender</h1>
-                <p class="subtitle">Tap the button to get five fresh sets of suggested numbers.</p>
+                <h1>Dinner Menu Recommender</h1>
+                <p class="subtitle">Tap the button to get five inspired dinner menus.</p>
             </div>
             <div>
                 <button class="toggle" id="theme-toggle">Dark mode</button>
-                <button class="cta" id="generate">Recommend Numbers</button>
+                <button class="cta" id="generate">What's for dinner?</button>
             </div>
         </header>
         <section id="results" class="results"></section>
-        <p class="hint">Numbers are randomly suggested and do not guarantee any outcome.</p>
+        <p class="hint">Menus are randomly suggested and meant for inspiration.</p>
         <div class="divider" role="presentation"></div>
         <section class="form-section" aria-labelledby="partnership-heading">
             <h2 id="partnership-heading">Partnership enquiry</h2>
@@ -287,43 +323,104 @@
         </section>
     </div>
     <script>
-        const SET_COUNT = 5;
-        const NUMBERS_PER_SET = 6;
-        const MAX_NUMBER = 49;
+        const KOREAN_MAINS = [
+            'Bulgogi beef bowl',
+            'Bibimbap',
+            'Kimchi jjigae',
+            'Japchae',
+            'Dak galbi',
+            'Samgyeopsal'
+        ];
 
-        const pickNumbers = () => {
-            const set = new Set();
-            while (set.size < NUMBERS_PER_SET) {
-                set.add(Math.floor(Math.random() * MAX_NUMBER) + 1);
-            }
-            return Array.from(set).sort((a, b) => a - b);
+        const OTHER_MAINS = [
+            'Herb roast chicken',
+            'Miso-glazed salmon',
+            'Spiced chickpea bowl',
+            'Mushroom risotto',
+            'Beef fajitas',
+            'Lemon herb pasta',
+            'Teriyaki tofu bowl'
+        ];
+
+        const KOREAN_WEIGHT = 0.6;
+
+        const buildImageUrl = (query) => `https://source.unsplash.com/900x600/?${encodeURIComponent(query)}`;
+
+        const MAIN_IMAGES = {
+            'Bulgogi beef bowl': buildImageUrl('bulgogi'),
+            'Bibimbap': buildImageUrl('bibimbap'),
+            'Kimchi jjigae': buildImageUrl('kimchi stew'),
+            'Japchae': buildImageUrl('japchae'),
+            'Dak galbi': buildImageUrl('dakgalbi'),
+            'Samgyeopsal': buildImageUrl('samgyeopsal'),
+            'Herb roast chicken': 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=900&q=80',
+            'Miso-glazed salmon': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=80',
+            'Spiced chickpea bowl': 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80',
+            'Mushroom risotto': 'https://images.unsplash.com/photo-1526318896980-cf78c088247c?auto=format&fit=crop&w=900&q=80',
+            'Beef fajitas': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
+            'Lemon herb pasta': 'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=900&q=80',
+            'Teriyaki tofu bowl': 'https://images.unsplash.com/photo-1543339318-b43dc53e19b3?auto=format&fit=crop&w=900&q=80'
         };
 
         const renderSets = () => {
             const results = document.getElementById('results');
             results.innerHTML = '';
 
-            for (let i = 0; i < SET_COUNT; i++) {
-                const card = document.createElement('article');
-                card.className = 'card';
+            const card = document.createElement('article');
+            card.className = 'card';
 
-                const heading = document.createElement('h2');
-                heading.textContent = `Set ${i + 1}`;
+            const heading = document.createElement('h2');
+            heading.textContent = 'Tonight\'s Menu';
 
-                const numbers = document.createElement('div');
-                numbers.className = 'numbers';
+            const numbers = document.createElement('div');
+            numbers.className = 'numbers';
 
-                pickNumbers().forEach((num) => {
-                    const ball = document.createElement('span');
-                    ball.className = 'ball';
-                    ball.textContent = num;
-                    numbers.appendChild(ball);
-                });
+            const preferKorean = Math.random() < KOREAN_WEIGHT;
+            const mains = preferKorean ? KOREAN_MAINS : OTHER_MAINS;
+            const pick = mains[Math.floor(Math.random() * mains.length)];
+            const imageSrc = MAIN_IMAGES[pick];
 
-                card.appendChild(heading);
-                card.appendChild(numbers);
-                results.appendChild(card);
-            }
+            const imageWrap = document.createElement('div');
+            imageWrap.className = 'menu-image-wrap';
+            imageWrap.setAttribute('data-status', 'Loading image...');
+
+            const image = document.createElement('img');
+            image.className = 'menu-image';
+            const withCacheBust = (url) => {
+                return url.includes('?')
+                    ? `${url}&sig=${Date.now()}`
+                    : `${url}?sig=${Date.now()}`;
+            };
+            image.src = withCacheBust(imageSrc);
+            image.alt = pick;
+
+            image.addEventListener('load', () => {
+                imageWrap.classList.add('is-loaded');
+            });
+
+            image.addEventListener('error', () => {
+                if (!image.dataset.retry) {
+                    image.dataset.retry = '1';
+                    image.src = withCacheBust(buildImageUrl(`${pick} food`));
+                    return;
+                }
+                imageWrap.classList.add('is-error');
+                imageWrap.setAttribute('data-status', '');
+                image.remove();
+            });
+
+            imageWrap.appendChild(image);
+
+            const title = document.createElement('div');
+            title.className = 'menu-title';
+            title.textContent = pick;
+
+            numbers.appendChild(imageWrap);
+            numbers.appendChild(title);
+
+            card.appendChild(heading);
+            card.appendChild(numbers);
+            results.appendChild(card);
         };
 
         document.getElementById('generate').addEventListener('click', renderSets);
