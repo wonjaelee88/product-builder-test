@@ -37,7 +37,7 @@
       <div class="panel user">
         <div class="panel-head">
           <h2>Your Move</h2>
-          <p>Pick a move or let the classifier decide.</p>
+          <p>Webcam-only rounds with a 3-second countdown.</p>
         </div>
         <div class="ai-card">
           <div class="ai-row">
@@ -57,7 +57,7 @@
             </div>
             <div class="labels" id="label-container"></div>
           </div>
-          <p class="note">Teachable Machine model auto-plays from the webcam feed.</p>
+          <p class="note">Each round captures one frame after a 3-second timer.</p>
         </div>
       </div>
 
@@ -73,7 +73,14 @@
             <span class="choice-display" id="computer-choice">-</span>
           </div>
         </div>
+        <div class="rounds">
+          <span class="round-label">Round</span>
+          <span class="round-value" id="round">0</span>
+          <span class="round-total">/ 5</span>
+        </div>
+        <div class="timer" id="timer">--</div>
         <div class="result" id="result">Start the webcam to play.</div>
+        <button id="start-match">Start match</button>
         <button class="secondary" id="reset">Reset match</button>
       </div>
 

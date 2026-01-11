@@ -16,7 +16,10 @@ const computerChoiceEl = document.getElementById("computer-choice");
 const resultEl = document.getElementById("result");
 const historyEl = document.getElementById("history");
 const aiStatusEl = document.getElementById("ai-status");
+const roundEl = document.getElementById("round");
+const timerEl = document.getElementById("timer");
 const resetBtn = document.getElementById("reset");
+const startMatchBtn = document.getElementById("start-match");
 const startWebcamBtn = document.getElementById("start-webcam");
 const stopWebcamBtn = document.getElementById("stop-webcam");
 const webcamContainer = document.getElementById("webcam-container");
@@ -31,10 +34,14 @@ let model = null;
 let modelLoadingPromise = null;
 let webcam = null;
 let webcamRunning = false;
-let maxPredictions = 0;
 let lastWebcamChoice = null;
-let lastAutoPlayChoice = null;
-let lastAutoPlayTime = 0;
+let currentRound = 0;
+let matchActive = false;
+let countdownId = null;
+let countdownRemaining = 0;
+
+const TOTAL_ROUNDS = 5;
+const COUNTDOWN_SECONDS = 3;
 
 const setStatus = (text) => {
   resultEl.textContent = text;
@@ -152,16 +159,19 @@ const updateWebcamPrediction = async () => {
     return current.probability > top.probability ? current : top;
   }, predictions[0]);
   lastWebcamChoice = normalizeChoice(best.className);
-  if (lastWebcamChoice) {
-    const now = Date.now();
-    const cooldownElapsed = now - lastAutoPlayTime > 2000;
-    const isNewChoice = lastWebcamChoice !== lastAutoPlayChoice;
-    if (cooldownElapsed || isNewChoice) {
-      lastAutoPlayChoice = lastWebcamChoice;
-      lastAutoPlayTime = now;
-      playRound(lastWebcamChoice);
-    }
+};
+
+const getSnapshotChoice = async () => {
+  if (!webcam || !model || !webcamRunning) {
+    return null;
   }
+  webcam.update();
+  const predictions = await model.predict(webcam.canvas);
+  renderLabels(predictions);
+  const best = predictions.reduce((top, current) => {
+    return current.probability > top.probability ? current : top;
+  }, predictions[0]);
+  return normalizeChoice(best.className);
 };
 
 const webcamLoop = async () => {
@@ -179,7 +189,6 @@ const startWebcam = async () => {
   try {
     const loadedModel = await ensureModelLoaded();
     model = loadedModel;
-    maxPredictions = model.getTotalClasses();
     webcam = new tmImage.Webcam(260, 200, true);
     await webcam.setup();
     await webcam.play();
@@ -188,7 +197,7 @@ const startWebcam = async () => {
     webcamRunning = true;
     stopWebcamBtn.disabled = false;
     setAiStatus("Live");
-    setStatus("Show your hand to play.");
+    setStatus("Ready. Start the match to play.");
     webcamLoop();
   } catch (error) {
     setAiStatus("Error");
@@ -204,12 +213,96 @@ const stopWebcam = () => {
   }
   webcamRunning = false;
   lastWebcamChoice = null;
-  lastAutoPlayChoice = null;
-  lastAutoPlayTime = 0;
   webcamContainer.innerHTML = "<span>Webcam idle</span>";
   labelContainer.innerHTML = "";
   stopWebcamBtn.disabled = true;
   setAiStatus("Idle");
+  matchActive = false;
+  stopCountdown();
+  countdownRemaining = 0;
+  updateTimerDisplay();
+  startMatchBtn.disabled = false;
+};
+
+const updateRoundDisplay = () => {
+  roundEl.textContent = currentRound;
+};
+
+const updateTimerDisplay = () => {
+  timerEl.textContent = countdownRemaining > 0 ? countdownRemaining : "--";
+};
+
+const stopCountdown = () => {
+  if (countdownId) {
+    clearInterval(countdownId);
+    countdownId = null;
+  }
+};
+
+const startCountdown = () => {
+  stopCountdown();
+  countdownRemaining = COUNTDOWN_SECONDS;
+  updateTimerDisplay();
+  countdownId = setInterval(() => {
+    countdownRemaining -= 1;
+    updateTimerDisplay();
+    if (countdownRemaining <= 0) {
+      stopCountdown();
+    }
+  }, 1000);
+};
+
+const finishMatch = () => {
+  matchActive = false;
+  startMatchBtn.disabled = false;
+  setStatus("Match complete. Reset to play again.");
+};
+
+const playNextRound = async () => {
+  if (!matchActive) {
+    return;
+  }
+  if (currentRound >= TOTAL_ROUNDS) {
+    finishMatch();
+    return;
+  }
+  currentRound += 1;
+  updateRoundDisplay();
+  setStatus(`Round ${currentRound}: get ready...`);
+  startCountdown();
+  setTimeout(async () => {
+    if (!matchActive) {
+      return;
+    }
+    const choice = await getSnapshotChoice();
+    if (!choice) {
+      setStatus("Could not detect a gesture. Try this round again.");
+      currentRound -= 1;
+      updateRoundDisplay();
+      playNextRound();
+      return;
+    }
+    playRound(choice);
+    if (currentRound >= TOTAL_ROUNDS) {
+      finishMatch();
+      return;
+    }
+    setTimeout(playNextRound, 800);
+  }, COUNTDOWN_SECONDS * 1000);
+};
+
+const startMatch = () => {
+  if (!webcamRunning) {
+    setStatus("Start the webcam first.");
+    return;
+  }
+  if (matchActive) {
+    return;
+  }
+  resetMatch();
+  matchActive = true;
+  startMatchBtn.disabled = true;
+  playNextRound();
 };
 
 const resetMatch = () => {
@@ -219,10 +312,18 @@ const resetMatch = () => {
   setAiStatus("Idle");
   setStatus("Start the webcam to play.");
   historyEl.innerHTML = "";
+  matchActive = false;
+  currentRound = 0;
+  updateRoundDisplay();
+  countdownRemaining = 0;
+  updateTimerDisplay();
+  stopCountdown();
+  startMatchBtn.disabled = false;
 };
 
 resetBtn.addEventListener("click", resetMatch);
 startWebcamBtn.addEventListener("click", startWebcam);
 stopWebcamBtn.addEventListener("click", stopWebcam);
+startMatchBtn.addEventListener("click", startMatch);
 
 resetMatch();
