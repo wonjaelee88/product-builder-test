@@ -24,6 +24,10 @@ const startWebcamBtn = document.getElementById("start-webcam");
 const stopWebcamBtn = document.getElementById("stop-webcam");
 const webcamContainer = document.getElementById("webcam-container");
 const labelContainer = document.getElementById("label-container");
+const userImageEl = document.getElementById("user-image");
+const computerImageEl = document.getElementById("computer-image");
+const userCaptionEl = document.getElementById("user-caption");
+const computerCaptionEl = document.getElementById("computer-caption");
 
 let scores = {
   user: 0,
@@ -42,10 +46,46 @@ let countdownRemaining = 0;
 
 const TOTAL_ROUNDS = 5;
 const COUNTDOWN_SECONDS = 3;
+const RESULT_PAUSE_MS = 1200;
+const CHEER_MESSAGES = {
+  win: [
+    "Nice! That's a clean win.",
+    "Boom. That's your round.",
+    "Good read. Keep it up."
+  ],
+  lose: [
+    "Oof. The bot got you.",
+    "Close one. Shake it off.",
+    "The computer got lucky. Next round."
+  ],
+  tie: [
+    "A perfect mirror. Again!",
+    "Stalemate. Run it back.",
+    "Same hand energy."
+  ]
+};
 
 const setStatus = (text) => {
   resultEl.textContent = text;
 };
+
+const toDataUri = (svg) => {
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
+
+const choiceArt = {
+  rock: toDataUri(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><rect width='160' height='160' rx='24' fill='%23f6efe5'/><circle cx='80' cy='82' r='46' fill='%23706455'/><circle cx='62' cy='70' r='10' fill='%23857563'/><circle cx='98' cy='66' r='8' fill='%23857563'/></svg>"
+  ),
+  paper: toDataUri(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><rect width='160' height='160' rx='24' fill='%23f6efe5'/><rect x='40' y='28' width='80' height='104' rx='10' fill='%23f7f9fb' stroke='%23c4b8ad' stroke-width='4'/><line x1='52' y1='60' x2='108' y2='60' stroke='%23d0c5bc' stroke-width='4'/><line x1='52' y1='80' x2='108' y2='80' stroke='%23d0c5bc' stroke-width='4'/><line x1='52' y1='100' x2='94' y2='100' stroke='%23d0c5bc' stroke-width='4'/></svg>"
+  ),
+  scissors: toDataUri(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><rect width='160' height='160' rx='24' fill='%23f6efe5'/><circle cx='56' cy='56' r='18' fill='none' stroke='%23c5441f' stroke-width='6'/><circle cx='104' cy='56' r='18' fill='none' stroke='%23c5441f' stroke-width='6'/><line x1='64' y1='70' x2='120' y2='128' stroke='%23c5441f' stroke-width='6' stroke-linecap='round'/><line x1='96' y1='70' x2='40' y2='128' stroke='%23c5441f' stroke-width='6' stroke-linecap='round'/></svg>"
+  )
+};
+const EMPTY_IMAGE =
+  "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
 const updateScoreboard = () => {
   userScoreEl.textContent = scores.user;
@@ -66,6 +106,12 @@ const formatChoice = (choice) => {
 const updateChoices = (userChoice, computerChoice) => {
   userChoiceEl.textContent = formatChoice(userChoice);
   computerChoiceEl.textContent = formatChoice(computerChoice);
+  userImageEl.src = userChoice ? choiceArt[userChoice] : EMPTY_IMAGE;
+  computerImageEl.src = computerChoice ? choiceArt[computerChoice] : EMPTY_IMAGE;
+  userImageEl.alt = userChoice ? `${formatChoice(userChoice)} choice` : "No choice";
+  computerImageEl.alt = computerChoice ? `${formatChoice(computerChoice)} choice` : "No choice";
+  userCaptionEl.textContent = userChoice ? formatChoice(userChoice) : "-";
+  computerCaptionEl.textContent = computerChoice ? formatChoice(computerChoice) : "-";
 };
 
 const addHistory = (text) => {
@@ -83,23 +129,29 @@ const getComputerChoice = () => {
 
 const resolveRound = (userChoice) => {
   const computerChoice = getComputerChoice();
+  let outcome = "";
+  let outcomeKey = "";
 
   if (userChoice === computerChoice) {
     scores.ties += 1;
-    setStatus("Tie round. Try again.");
+    outcome = "Tie round.";
+    outcomeKey = "tie";
     addHistory(`Tie: ${formatChoice(userChoice)} vs ${formatChoice(computerChoice)}`);
   } else if (beats[userChoice] === computerChoice) {
     scores.user += 1;
-    setStatus("You win this round.");
+    outcome = "You win this round.";
+    outcomeKey = "win";
     addHistory(`Win: ${formatChoice(userChoice)} beats ${formatChoice(computerChoice)}`);
   } else {
     scores.computer += 1;
-    setStatus("Computer wins this round.");
+    outcome = "Computer wins this round.";
+    outcomeKey = "lose";
     addHistory(`Loss: ${formatChoice(computerChoice)} beats ${formatChoice(userChoice)}`);
   }
 
   updateScoreboard();
   updateChoices(userChoice, computerChoice);
+  return { outcome, outcomeKey, computerChoice };
 };
 
 const playRound = (choice) => {
@@ -107,7 +159,7 @@ const playRound = (choice) => {
     setStatus("Show your hand to play.");
     return;
   }
-  resolveRound(choice);
+  return resolveRound(choice);
 };
 
 const setAiStatus = (text) => {
@@ -228,6 +280,18 @@ const updateRoundDisplay = () => {
   roundEl.textContent = currentRound;
 };
 
+const getGameStateText = () => {
+  return `Score: You ${scores.user} - ${scores.computer} (Ties ${scores.ties})`;
+};
+
+const getCheerMessage = (key) => {
+  const pool = CHEER_MESSAGES[key] || [];
+  if (!pool.length) {
+    return "";
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
 const updateTimerDisplay = () => {
   timerEl.textContent = countdownRemaining > 0 ? countdownRemaining : "--";
 };
@@ -255,7 +319,7 @@ const startCountdown = () => {
 const finishMatch = () => {
   matchActive = false;
   startMatchBtn.disabled = false;
-  setStatus("Match complete. Reset to play again.");
+  setStatus(`Match complete. ${getGameStateText()}`);
 };
 
 const playNextRound = async () => {
@@ -282,12 +346,19 @@ const playNextRound = async () => {
       playNextRound();
       return;
     }
-    playRound(choice);
+    const result = playRound(choice);
+    if (result) {
+      const cheer = getCheerMessage(result.outcomeKey);
+      const cheerText = cheer ? ` ${cheer}` : "";
+      setStatus(
+        `Round ${currentRound}: ${result.outcome}${cheerText} ${getGameStateText()}`
+      );
+    }
     if (currentRound >= TOTAL_ROUNDS) {
       finishMatch();
       return;
     }
-    setTimeout(playNextRound, 800);
+    setTimeout(playNextRound, RESULT_PAUSE_MS);
   }, COUNTDOWN_SECONDS * 1000);
 };
 

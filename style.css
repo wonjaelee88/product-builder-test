@@ -286,6 +286,35 @@ button:hover:not(:disabled) {
   align-items: center;
 }
 
+.choice-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.8rem;
+}
+
+.choice-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(27, 22, 18, 0.1);
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+}
+
+.choice-card img {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #f6efe5;
+}
+
+.choice-caption {
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
 .label {
   display: block;
   font-size: 0.75rem;
