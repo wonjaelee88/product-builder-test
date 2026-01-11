@@ -134,8 +134,8 @@
         }
 
         .menu-image-wrap {
-            width: 100%;
-            height: 180px;
+            width: 220px;
+            height: 220px;
             border-radius: 12px;
             border: 1px solid rgba(15, 107, 95, 0.15);
             overflow: hidden;
@@ -344,15 +344,13 @@
 
         const KOREAN_WEIGHT = 0.6;
 
-        const buildImageUrl = (query) => `https://loremflickr.com/900/600/${encodeURIComponent(query)}`;
-
         const MAIN_IMAGES = {
-            'Bulgogi beef bowl': buildImageUrl('bulgogi'),
-            'Bibimbap': buildImageUrl('bibimbap'),
-            'Kimchi jjigae': buildImageUrl('kimchi stew'),
-            'Japchae': buildImageUrl('japchae'),
-            'Dak galbi': buildImageUrl('dakgalbi'),
-            'Samgyeopsal': buildImageUrl('samgyeopsal'),
+            'Bulgogi beef bowl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Bulgogi_2.jpg/960px-Bulgogi_2.jpg',
+            'Bibimbap': 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Dolsot-bibimbap.jpg',
+            'Kimchi jjigae': 'https://upload.wikimedia.org/wikipedia/commons/1/17/Kimchi_jjigae.jpg',
+            'Japchae': 'https://upload.wikimedia.org/wikipedia/commons/0/0b/Japchae.jpg',
+            'Dak galbi': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Korean_cuisine-Dakgalbi-01.jpg/960px-Korean_cuisine-Dakgalbi-01.jpg',
+            'Samgyeopsal': 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Samgyeopsal-gui.jpg',
             'Herb roast chicken': 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=900&q=80',
             'Miso-glazed salmon': 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=80',
             'Spiced chickpea bowl': 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80',
@@ -361,6 +359,8 @@
             'Lemon herb pasta': 'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=900&q=80',
             'Teriyaki tofu bowl': 'https://images.unsplash.com/photo-1543339318-b43dc53e19b3?auto=format&fit=crop&w=900&q=80'
         };
+
+        const DEFAULT_MENU_IMAGE = 'https://upload.wikimedia.org/wikipedia/commons/2/2e/Korean_cuisine.jpg';
 
         const renderSets = () => {
             const results = document.getElementById('results');
@@ -386,12 +386,7 @@
 
             const image = document.createElement('img');
             image.className = 'menu-image';
-            const withCacheBust = (url) => {
-                return url.includes('?')
-                    ? `${url}&sig=${Date.now()}`
-                    : `${url}?sig=${Date.now()}`;
-            };
-            image.src = withCacheBust(imageSrc);
+            image.src = imageSrc;
             image.alt = pick;
 
             image.addEventListener('load', () => {
@@ -401,7 +396,7 @@
             image.addEventListener('error', () => {
                 if (!image.dataset.retry) {
                     image.dataset.retry = '1';
-                    image.src = withCacheBust(buildImageUrl(`${pick} food`));
+                    image.src = DEFAULT_MENU_IMAGE;
                     return;
                 }
                 imageWrap.classList.add('is-error');
