@@ -39,26 +39,13 @@
           <h2>Your Move</h2>
           <p>Pick a move or let the classifier decide.</p>
         </div>
-        <div class="choice-grid" id="choice-grid">
-          <button class="choice" data-choice="rock">Rock</button>
-          <button class="choice" data-choice="paper">Paper</button>
-          <button class="choice" data-choice="scissors">Scissors</button>
-        </div>
-
         <div class="ai-card">
           <div class="ai-row">
             <div>
               <h3>AI Classifier Input</h3>
-              <p>Upload a hand photo to classify it.</p>
+              <p>Use the webcam to classify your hand gesture.</p>
             </div>
             <span class="pill" id="ai-status">Idle</span>
-          </div>
-          <label class="upload">
-            <input type="file" id="hand-image" accept="image/*">
-            <span>Choose image</span>
-          </label>
-          <div class="preview" id="preview">
-            <span>No image selected</span>
           </div>
           <div class="webcam-block">
             <div class="webcam-row">
@@ -70,11 +57,7 @@
             </div>
             <div class="labels" id="label-container"></div>
           </div>
-          <div class="ai-actions">
-            <button class="secondary" id="detect">Detect gesture</button>
-            <button id="play-detected" disabled>Play detected move</button>
-          </div>
-          <p class="note">Integrate your model in <code>main.js</code> inside <code>classifyHandImage</code>.</p>
+          <p class="note">Teachable Machine model auto-plays from the webcam feed.</p>
         </div>
       </div>
 
@@ -90,7 +73,7 @@
             <span class="choice-display" id="computer-choice">-</span>
           </div>
         </div>
-        <div class="result" id="result">Make your move.</div>
+        <div class="result" id="result">Start the webcam to play.</div>
         <button class="secondary" id="reset">Reset match</button>
       </div>
 

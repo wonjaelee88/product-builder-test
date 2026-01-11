@@ -211,46 +211,6 @@ h1 {
   letter-spacing: 0.1em;
 }
 
-.upload {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid rgba(27, 22, 18, 0.2);
-  background: #fff;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.upload input {
-  display: none;
-}
-
-.preview {
-  min-height: 140px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid rgba(27, 22, 18, 0.1);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.ai-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
 .webcam-block {
   display: grid;
   gap: 0.7rem;

@@ -16,11 +16,7 @@ const computerChoiceEl = document.getElementById("computer-choice");
 const resultEl = document.getElementById("result");
 const historyEl = document.getElementById("history");
 const aiStatusEl = document.getElementById("ai-status");
-const previewEl = document.getElementById("preview");
-const detectBtn = document.getElementById("detect");
-const playDetectedBtn = document.getElementById("play-detected");
 const resetBtn = document.getElementById("reset");
-const fileInput = document.getElementById("hand-image");
 const startWebcamBtn = document.getElementById("start-webcam");
 const stopWebcamBtn = document.getElementById("stop-webcam");
 const webcamContainer = document.getElementById("webcam-container");
@@ -31,14 +27,14 @@ let scores = {
   computer: 0,
   ties: 0
 };
-let detectedChoice = null;
-let lastUserChoice = null;
 let model = null;
 let modelLoadingPromise = null;
 let webcam = null;
 let webcamRunning = false;
 let maxPredictions = 0;
 let lastWebcamChoice = null;
+let lastAutoPlayChoice = null;
+let lastAutoPlayTime = 0;
 
 const setStatus = (text) => {
   resultEl.textContent = text;
@@ -99,19 +95,11 @@ const resolveRound = (userChoice) => {
   updateChoices(userChoice, computerChoice);
 };
 
-const selectChoice = (choice) => {
-  lastUserChoice = choice;
-  document.querySelectorAll(".choice").forEach((btn) => {
-    btn.classList.toggle("selected", btn.dataset.choice === choice);
-  });
-};
-
 const playRound = (choice) => {
   if (!choice) {
-    setStatus("Pick a move first.");
+    setStatus("Show your hand to play.");
     return;
   }
-  selectChoice(choice);
   resolveRound(choice);
 };
 
@@ -130,20 +118,6 @@ const ensureModelLoaded = async () => {
   return model;
 };
 
-const fileToImage = (file) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    const reader = new FileReader();
-    reader.onload = () => {
-      img.src = reader.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
 const normalizeChoice = (label) => {
   const normalized = label.trim().toLowerCase();
   if (normalized === "scissor") {
@@ -153,16 +127,6 @@ const normalizeChoice = (label) => {
     return normalized;
   }
   return null;
-};
-
-const classifyHandImage = async (file) => {
-  const loadedModel = await ensureModelLoaded();
-  const img = await fileToImage(file);
-  const predictions = await loadedModel.predict(img);
-  const best = predictions.reduce((top, current) => {
-    return current.probability > top.probability ? current : top;
-  }, predictions[0]);
-  return normalizeChoice(best.className);
 };
 
 const renderLabels = (predictions) => {
@@ -188,6 +152,16 @@ const updateWebcamPrediction = async () => {
     return current.probability > top.probability ? current : top;
   }, predictions[0]);
   lastWebcamChoice = normalizeChoice(best.className);
+  if (lastWebcamChoice) {
+    const now = Date.now();
+    const cooldownElapsed = now - lastAutoPlayTime > 2000;
+    const isNewChoice = lastWebcamChoice !== lastAutoPlayChoice;
+    if (cooldownElapsed || isNewChoice) {
+      lastAutoPlayChoice = lastWebcamChoice;
+      lastAutoPlayTime = now;
+      playRound(lastWebcamChoice);
+    }
+  }
 };
 
 const webcamLoop = async () => {
@@ -214,6 +188,7 @@ const startWebcam = async () => {
     webcamRunning = true;
     stopWebcamBtn.disabled = false;
     setAiStatus("Live");
+    setStatus("Show your hand to play.");
     webcamLoop();
   } catch (error) {
     setAiStatus("Error");
@@ -229,103 +204,25 @@ const stopWebcam = () => {
   }
   webcamRunning = false;
   lastWebcamChoice = null;
+  lastAutoPlayChoice = null;
+  lastAutoPlayTime = 0;
   webcamContainer.innerHTML = "<span>Webcam idle</span>";
   labelContainer.innerHTML = "";
   stopWebcamBtn.disabled = true;
   setAiStatus("Idle");
 };
 
-const updatePreview = (file) => {
-  if (!file) {
-    previewEl.innerHTML = "<span>No image selected</span>";
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => {
-    previewEl.innerHTML = "";
-    const img = document.createElement("img");
-    img.src = reader.result;
-    previewEl.appendChild(img);
-  };
-  reader.readAsDataURL(file);
-};
-
-const detectGesture = async () => {
-  const file = fileInput.files[0];
-  if (!file && !webcamRunning) {
-    setStatus("Upload a hand image to detect a gesture.");
-    return;
-  }
-
-  setAiStatus("Loading");
-  detectBtn.disabled = true;
-  playDetectedBtn.disabled = true;
-  setStatus("Classifier running...");
-
-  try {
-    if (webcamRunning) {
-      await updateWebcamPrediction();
-      detectedChoice = lastWebcamChoice;
-    } else {
-      detectedChoice = await classifyHandImage(file);
-    }
-    if (!detectedChoice) {
-      setAiStatus("Unknown");
-      setStatus("Classifier result not recognized. Use rock/paper/scissors labels.");
-      return;
-    }
-    setAiStatus("Detected");
-    playDetectedBtn.disabled = false;
-    setStatus(`Detected ${detectedChoice}. Ready to play.`);
-  } catch (error) {
-    detectedChoice = null;
-    setAiStatus("Error");
-    setStatus("Classifier failed. Try again.");
-  } finally {
-    detectBtn.disabled = false;
-  }
-};
-
 const resetMatch = () => {
   scores = { user: 0, computer: 0, ties: 0 };
-  detectedChoice = null;
-  lastUserChoice = null;
   updateScoreboard();
   updateChoices(null, null);
   setAiStatus("Idle");
-  setStatus("Make your move.");
-  playDetectedBtn.disabled = true;
+  setStatus("Start the webcam to play.");
   historyEl.innerHTML = "";
-  document.querySelectorAll(".choice").forEach((btn) => {
-    btn.classList.remove("selected");
-  });
 };
-
-document.querySelectorAll(".choice").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    playRound(btn.dataset.choice);
-  });
-});
-
-detectBtn.addEventListener("click", detectGesture);
-
-playDetectedBtn.addEventListener("click", () => {
-  if (!detectedChoice) {
-    setStatus("Run detection first.");
-    return;
-  }
-  playRound(detectedChoice);
-});
 
 resetBtn.addEventListener("click", resetMatch);
 startWebcamBtn.addEventListener("click", startWebcam);
 stopWebcamBtn.addEventListener("click", stopWebcam);
-
-fileInput.addEventListener("change", () => {
-  updatePreview(fileInput.files[0]);
-  detectedChoice = null;
-  setAiStatus("Idle");
-  playDetectedBtn.disabled = true;
-});
 
 resetMatch();
