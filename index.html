@@ -152,6 +152,83 @@
             font-size: 0.95rem;
         }
 
+        .divider {
+            height: 1px;
+            background: rgba(15, 107, 95, 0.18);
+            margin: 2rem 0;
+        }
+
+        .form-section h2 {
+            margin: 0 0 0.4rem;
+            font-size: 1.25rem;
+            color: var(--accent-dark);
+        }
+
+        .form-section p {
+            margin: 0 0 1.25rem;
+            color: var(--muted);
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        label {
+            display: grid;
+            gap: 0.45rem;
+            font-weight: 600;
+            color: var(--accent-dark);
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(15, 107, 95, 0.25);
+            padding: 0.75rem 0.85rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: #ffffff;
+            color: var(--text);
+        }
+
+        body.dark input,
+        body.dark textarea {
+            background: #111a1a;
+            border-color: rgba(244, 182, 66, 0.35);
+            color: var(--text);
+        }
+
+        textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .submit {
+            border: none;
+            border-radius: 999px;
+            padding: 0.85rem 1.6rem;
+            background: var(--accent);
+            color: var(--button-text);
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 12px 20px rgba(15, 107, 95, 0.25);
+        }
+
+        .submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 24px rgba(15, 107, 95, 0.3);
+        }
+
         @media (max-width: 680px) {
             header {
                 flex-direction: column;
@@ -174,6 +251,40 @@
         </header>
         <section id="results" class="results"></section>
         <p class="hint">Numbers are randomly suggested and do not guarantee any outcome.</p>
+        <div class="divider" role="presentation"></div>
+        <section class="form-section" aria-labelledby="partnership-heading">
+            <h2 id="partnership-heading">Partnership enquiry</h2>
+            <p>Tell us about your project and how you'd like to collaborate.</p>
+            <form id="partnership-form" action="https://formspree.io/f/mjggblwg" method="POST">
+                <div class="form-grid">
+                    <label>
+                        Name
+                        <input type="text" name="name" autocomplete="name" required>
+                    </label>
+                    <label>
+                        Email
+                        <input type="email" name="email" autocomplete="email" required>
+                    </label>
+                    <label>
+                        Company
+                        <input type="text" name="company" autocomplete="organization">
+                    </label>
+                    <label>
+                        Partnership goals
+                        <input type="text" name="goals" placeholder="Co-marketing, product integration, etc.">
+                    </label>
+                </div>
+                <label>
+                    Message
+                    <textarea name="message" required placeholder="Share timelines, audiences, or anything else we should know."></textarea>
+                </label>
+                <input type="hidden" name="_subject" value="New Partnership Enquiry">
+                <div class="form-actions">
+                    <button class="submit" type="submit">Send enquiry</button>
+                </div>
+                <p class="hint" id="form-status" role="status" aria-live="polite"></p>
+            </form>
+        </section>
     </div>
     <script>
         const SET_COUNT = 5;
@@ -219,6 +330,33 @@
         document.getElementById('theme-toggle').addEventListener('click', () => {
             const isDark = document.body.classList.toggle('dark');
             document.getElementById('theme-toggle').textContent = isDark ? 'Light mode' : 'Dark mode';
+        });
+
+        const partnershipForm = document.getElementById('partnership-form');
+        const formStatus = document.getElementById('form-status');
+
+        partnershipForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            formStatus.textContent = '';
+
+            try {
+                const response = await fetch(partnershipForm.action, {
+                    method: 'POST',
+                    body: new FormData(partnershipForm),
+                    headers: {
+                        Accept: 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    formStatus.textContent = "Thanks! We'll be in touch shortly.";
+                    partnershipForm.reset();
+                } else {
+                    formStatus.textContent = 'Something went wrong. Please try again.';
+                }
+            } catch (error) {
+                formStatus.textContent = 'Unable to send right now. Please try again later.';
+            }
         });
         renderSets();
     </script>
